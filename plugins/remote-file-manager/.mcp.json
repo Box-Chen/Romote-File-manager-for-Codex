@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "remote_file_manager": {
+      "command": "node",
+      "args": ["./server.mjs"],
+      "cwd": ".",
+      "env_vars": ["PATH", "SSH_AUTH_SOCK"],
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 120
+    }
+  }
+}

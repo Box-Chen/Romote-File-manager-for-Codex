@@ -1,0 +1,30 @@
+{
+  "name": "remote-file-manager",
+  "version": "0.1.1",
+  "description": "A visual SSH/SFTP file manager that runs inside Codex.",
+  "author": {
+    "name": "Remote File Manager contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Remote File Manager",
+    "shortDescription": "Browse and safely manage SSH server files in Codex.",
+    "longDescription": "Open a visual remote file manager inside Codex. It uses your existing OpenSSH configuration and key authentication, restricts every session to a selected remote root, and requires a reviewed confirmation before writes, moves, uploads, or deletes.",
+    "developerName": "Remote File Manager contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Codex sidebar browser",
+      "SSH/SFTP",
+      "File preview and editing",
+      "Confirmed remote writes"
+    ],
+    "defaultPrompt": [
+      "Open my remote file manager.",
+      "Browse files on a server from my SSH config.",
+      "Safely edit a remote file with confirmation."
+    ],
+    "brandColor": "#176B5B"
+  },
+  "mcpServers": "./.mcp.json"
+}

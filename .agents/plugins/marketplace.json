@@ -1,0 +1,20 @@
+{
+  "name": "remote-files",
+  "interface": {
+    "displayName": "Remote Files"
+  },
+  "plugins": [
+    {
+      "name": "remote-file-manager",
+      "source": {
+        "source": "local",
+        "path": "./plugins/remote-file-manager"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Remote File Manager</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f7f5;
+      --panel: rgba(255,255,255,.88);
+      --panel-solid: #fff;
+      --text: #17201e;
+      --muted: #687672;
+      --line: #dce5e1;
+      --accent: #176b5b;
+      --accent-soft: #dcefe9;
+      --danger: #b33a3a;
+      --danger-soft: #fbe5e5;
+      --shadow: 0 18px 55px rgba(25,54,47,.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#101614; --panel:rgba(24,32,29,.92); --panel-solid:#18201d; --text:#edf4f1; --muted:#9aa9a4; --line:#34413d; --accent:#62c4ad; --accent-soft:#183e35; --danger:#ff8585; --danger-soft:#472525; --shadow:0 22px 60px rgba(0,0,0,.36); }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--text); background:var(--bg); }
+    body { padding:14px; background-image:radial-gradient(circle at 5% 0%, color-mix(in srgb,var(--accent) 12%,transparent), transparent 35%), radial-gradient(circle at 100% 100%, color-mix(in srgb,var(--accent) 8%,transparent), transparent 36%); }
+    button, input, textarea { font:inherit; color:inherit; }
+    button { cursor:pointer; }
+    .app { min-height:680px; max-width:1380px; margin:0 auto; display:grid; grid-template-rows:auto 1fr; overflow:hidden; border:1px solid var(--line); border-radius:20px; background:var(--panel); box-shadow:var(--shadow); backdrop-filter:blur(18px); }
+    .topbar { display:flex; align-items:center; gap:10px; min-height:64px; padding:11px 14px; border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:10px; min-width:204px; }
+    .mark { width:36px; height:36px; display:grid; place-items:center; border-radius:11px; color:white; background:linear-gradient(140deg,#1a806b,#124f45); box-shadow:0 6px 18px rgba(23,107,91,.25); }
+    .brand b { display:block; font-size:14px; letter-spacing:.01em; }
+    .brand span { display:block; margin-top:2px; color:var(--muted); font-size:11px; }
+    .connection { flex:1; display:grid; grid-template-columns:minmax(130px,210px) minmax(190px,1fr) auto; gap:8px; }
+    input, textarea { border:1px solid var(--line); border-radius:10px; background:color-mix(in srgb,var(--panel-solid) 88%,transparent); outline:none; transition:border-color .16s,box-shadow .16s; }
+    input { height:38px; padding:0 11px; }
+    input:focus, textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent); }
+    .btn { height:38px; padding:0 13px; display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid var(--line); border-radius:10px; background:var(--panel-solid); font-weight:650; white-space:nowrap; }
+    .btn:hover { border-color:color-mix(in srgb,var(--accent) 50%,var(--line)); background:var(--accent-soft); }
+    .btn.primary { color:white; border-color:transparent; background:var(--accent); }
+    .btn.primary:hover { filter:brightness(1.08); }
+    .btn.danger { color:var(--danger); border-color:color-mix(in srgb,var(--danger) 35%,var(--line)); }
+    .icon-btn { width:38px; padding:0; }
+    .workspace { min-height:0; display:grid; grid-template-columns:225px minmax(360px,1fr) minmax(300px,.82fr); }
+    .sidebar, .files, .preview { min-height:0; }
+    .sidebar { padding:14px; border-right:1px solid var(--line); background:color-mix(in srgb,var(--panel-solid) 48%,transparent); }
+    .section-title { margin:2px 4px 9px; color:var(--muted); font-size:11px; font-weight:750; letter-spacing:.09em; text-transform:uppercase; }
+    .host-list { display:grid; gap:5px; max-height:190px; overflow:auto; }
+    .host { width:100%; padding:9px 10px; display:flex; align-items:center; gap:9px; border:0; border-radius:9px; background:transparent; text-align:left; }
+    .host:hover, .host.active { background:var(--accent-soft); color:var(--accent); }
+    .host .dot { width:8px; height:8px; border:2px solid currentColor; border-radius:50%; }
+    .tree-view { max-height:310px; margin:0 -4px; overflow-y:auto; overflow-x:hidden; }
+    .tree-node { width:100%; min-height:31px; padding:4px 7px; display:flex; align-items:center; gap:6px; border:0; border-radius:8px; background:transparent; color:var(--muted); text-align:left; font-size:11px; white-space:nowrap; }
+    .tree-node:hover, .tree-node.active { color:var(--accent); background:var(--accent-soft); }
+    .tree-node .chevron { width:12px; flex:none; color:color-mix(in srgb,var(--muted) 75%,transparent); text-align:center; }
+    .tree-node .tree-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+    .security { margin-top:18px; padding:12px; border:1px solid var(--line); border-radius:12px; color:var(--muted); font-size:11px; line-height:1.55; background:color-mix(in srgb,var(--accent-soft) 40%,transparent); }
+    .security b { display:block; margin-bottom:4px; color:var(--text); font-size:12px; }
+    .session { margin-top:12px; padding:10px; border-radius:10px; background:var(--panel-solid); font-size:11px; line-height:1.55; word-break:break-all; }
+    .session strong { color:var(--accent); }
+    .files { display:grid; grid-template-rows:auto auto 1fr auto; border-right:1px solid var(--line); background:color-mix(in srgb,var(--panel-solid) 68%,transparent); }
+    .crumbbar { min-height:50px; padding:8px 12px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--line); }
+    .nav-controls { display:flex; gap:3px; flex:none; }
+    .nav-btn { width:30px; height:30px; padding:0; border:0; border-radius:7px; background:transparent; color:var(--muted); }
+    .nav-btn:hover:not(:disabled) { color:var(--accent); background:var(--accent-soft); }
+    .nav-btn:disabled { opacity:.3; cursor:default; }
+    .breadcrumb-list { min-width:0; display:flex; align-items:center; gap:3px; overflow-x:auto; }
+    .crumb { padding:6px 8px; border:0; border-radius:8px; background:transparent; color:var(--muted); white-space:nowrap; }
+    .crumb:hover { color:var(--accent); background:var(--accent-soft); }
+    .toolbar { padding:9px 12px; display:flex; gap:7px; align-items:center; border-bottom:1px solid var(--line); }
+    .toolbar .search { flex:1; min-width:110px; }
+    .toolbar .btn { height:34px; padding:0 10px; font-size:12px; }
+    .file-scroll { overflow:auto; min-height:300px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th { position:sticky; top:0; z-index:1; padding:9px 12px; color:var(--muted); background:color-mix(in srgb,var(--panel-solid) 96%,transparent); border-bottom:1px solid var(--line); text-align:left; font-size:10px; letter-spacing:.05em; text-transform:uppercase; }
+    td { padding:9px 12px; border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent); }
+    tr.file-row { cursor:pointer; }
+    tr.file-row:hover, tr.file-row.selected { background:var(--accent-soft); }
+    .name-cell { max-width:280px; display:flex; align-items:center; gap:9px; }
+    .name-cell .file-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+    .file-icon { width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:7px; background:#e8eceb; color:#53615d; font-size:10px; font-weight:800; letter-spacing:-.04em; }
+    .file-icon.folder { background:#fff0b8; color:#936900; font-size:17px; }
+    .file-icon.image { background:#eadfff; color:#7040a8; font-size:16px; }
+    .file-icon.table { background:#d9f1e4; color:#147047; font-size:15px; }
+    .file-icon.code { background:#dceaff; color:#245fa5; }
+    .file-icon.data { background:#def0ee; color:#176b5b; }
+    .file-icon.archive { background:#ffe4c7; color:#9a5314; }
+    .file-icon.pdf { background:#ffe0e0; color:#ad3030; }
+    .file-icon.media { background:#e1e5ff; color:#505dc0; font-size:15px; }
+    .file-icon.text { background:#e8eceb; color:#596662; }
+    .row-actions { display:flex; justify-content:flex-end; gap:4px; opacity:0; }
+    tr:hover .row-actions, tr.selected .row-actions { opacity:1; }
+    .mini { width:27px; height:27px; padding:0; border:0; border-radius:7px; background:transparent; color:var(--muted); }
+    .mini:hover { color:var(--accent); background:var(--panel-solid); }
+    .mini.delete:hover { color:var(--danger); background:var(--danger-soft); }
+    .statusbar { padding:8px 12px; display:flex; justify-content:space-between; gap:10px; border-top:1px solid var(--line); color:var(--muted); font-size:10px; }
+    .preview { display:grid; grid-template-rows:auto 1fr auto; background:var(--panel-solid); }
+    .preview-head { min-height:51px; padding:10px 13px; display:flex; align-items:center; justify-content:space-between; gap:9px; border-bottom:1px solid var(--line); }
+    .preview-title { min-width:0; }
+    .preview-title b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+    .preview-title span { display:block; margin-top:2px; color:var(--muted); font-size:10px; }
+    .editor-wrap { position:relative; min-height:0; }
+    textarea { width:100%; height:100%; min-height:510px; padding:15px; resize:none; border:0; border-radius:0; box-shadow:none!important; font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; tab-size:2; }
+    .image-preview { width:100%; height:100%; min-height:510px; padding:16px; object-fit:contain; background:repeating-conic-gradient(color-mix(in srgb,var(--line) 36%,transparent) 0 25%,transparent 0 50%) 50% / 18px 18px; }
+    .video-preview { width:100%; height:100%; min-height:510px; padding:12px; object-fit:contain; background:#080b0a; }
+    .empty { position:absolute; inset:0; display:grid; place-items:center; padding:28px; color:var(--muted); text-align:center; line-height:1.7; }
+    .empty .empty-icon { width:58px; height:58px; margin:0 auto 12px; display:grid; place-items:center; border:1px solid var(--line); border-radius:18px; background:var(--bg); font-size:24px; }
+    .preview-foot { min-height:49px; padding:7px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid var(--line); }
+    .dirty { color:var(--muted); font-size:10px; }
+    .dirty.changed { color:#b97817; font-weight:700; }
+    .toast-stack { position:fixed; right:24px; bottom:24px; z-index:20; display:grid; gap:8px; max-width:380px; }
+    .toast { padding:11px 13px; border:1px solid var(--line); border-radius:11px; background:var(--panel-solid); box-shadow:var(--shadow); font-size:12px; animation:slide .18s ease-out; }
+    .toast.error { color:var(--danger); border-color:color-mix(in srgb,var(--danger) 42%,var(--line)); }
+    @keyframes slide { from { transform:translateY(8px); opacity:0; } }
+    .modal-backdrop { position:fixed; inset:0; z-index:30; display:grid; place-items:center; padding:20px; background:rgba(7,15,13,.52); backdrop-filter:blur(5px); }
+    .modal-backdrop[hidden] { display:none; }
+    .modal { width:min(470px,100%); padding:19px; border:1px solid var(--line); border-radius:16px; background:var(--panel-solid); box-shadow:var(--shadow); }
+    .modal h2 { margin:0 0 8px; font-size:17px; }
+    .modal p { margin:0; color:var(--muted); font-size:12px; line-height:1.6; }
+    .summary { margin:13px 0; padding:12px; border-radius:10px; background:var(--bg); font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; }
+    .confirm-field { display:grid; gap:6px; margin-top:12px; }
+    .confirm-field label { color:var(--muted); font-size:11px; }
+    .modal-actions { margin-top:16px; display:flex; justify-content:flex-end; gap:8px; }
+    .loading { pointer-events:none; opacity:.62; }
+    [hidden] { display:none!important; }
+    @media (max-width:1000px) { .workspace { grid-template-columns:210px minmax(340px,1fr); } .preview { grid-column:1/-1; min-height:520px; border-top:1px solid var(--line); } .files { border-right:0; } textarea { min-height:430px; } .type-col { display:none; } }
+    @media (max-width:700px) { body{padding:0}.app{border-radius:0;border-left:0;border-right:0}.topbar{align-items:stretch;flex-wrap:wrap;overflow:hidden}.brand{min-width:0;flex:1}.connection{order:3;flex-basis:100%;width:100%;min-width:0;grid-template-columns:minmax(0,1fr) auto}.connection input{min-width:0}.connection #hostInput{grid-column:1/-1}.connection #rootInput{grid-column:1}.connection #connectBtn{grid-column:2}.workspace{display:block}.sidebar{border-right:0;border-bottom:1px solid var(--line)}.host-list{display:flex;max-height:none;overflow:auto}.host{width:auto;white-space:nowrap}.security{display:none}.files{min-height:520px}.preview{min-height:520px}.hide-mobile{display:none}.toolbar{flex-wrap:wrap}.toolbar .search{flex-basis:100%}.row-actions{opacity:1}}
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand"><div class="mark">⇄</div><div><b>Remote Files</b><span>SSH / SFTP workspace</span></div></div>
+      <div class="connection">
+        <input id="hostInput" list="hostOptions" placeholder="SSH 主机别名" autocomplete="off"><datalist id="hostOptions"></datalist>
+        <input id="rootInput" value="/" placeholder="远程根目录，例如 /var/www/app">
+        <button class="btn primary" id="connectBtn">连接</button>
+      </div>
+      <button class="btn icon-btn" id="fullscreenBtn" title="全屏">⛶</button>
+    </header>
+    <section class="workspace">
+      <aside class="sidebar">
+        <div class="section-title">SSH 配置</div>
+        <div class="host-list" id="hostList"></div>
+        <div class="section-title" id="treeTitle" style="margin-top:18px" hidden>目录树</div>
+        <div class="tree-view" id="treeView" hidden></div>
+        <div class="session" id="sessionInfo" hidden></div>
+        <div class="security"><b>受保护的远程会话</b>仅使用 OpenSSH 密钥或 SSH Agent。所有路径限制在连接时选择的根目录内，写入和删除必须经过确认。</div>
+      </aside>
+      <section class="files">
+        <nav class="crumbbar"><div class="nav-controls"><button class="nav-btn" id="backBtn" title="后退" disabled>←</button><button class="nav-btn" id="forwardBtn" title="前进" disabled>→</button><button class="nav-btn" id="upBtn" title="上一级" disabled>↑</button></div><div class="breadcrumb-list" id="breadcrumbs"><button class="crumb" data-path="">根目录</button></div></nav>
+        <div class="toolbar">
+          <input class="search" id="searchInput" placeholder="在当前目录下搜索文件名…">
+          <button class="btn" id="refreshBtn">↻ 刷新</button>
+          <button class="btn" id="newFileBtn">＋ 文件</button>
+          <button class="btn" id="mkdirBtn">＋ 文件夹</button>
+          <button class="btn" id="uploadBtn">⇧ 上传</button>
+          <input type="file" id="uploadInput" hidden>
+        </div>
+        <div class="file-scroll">
+          <table>
+            <thead><tr><th>名称</th><th class="type-col">类型</th><th class="hide-mobile">大小</th><th class="hide-mobile">修改时间</th><th></th></tr></thead>
+            <tbody id="fileBody"><tr><td colspan="5"><div style="padding:60px 20px;text-align:center;color:var(--muted)">选择 SSH 主机并连接后即可浏览</div></td></tr></tbody>
+          </table>
+        </div>
+        <footer class="statusbar"><span id="entryCount">尚未连接</span><span id="currentPath">—</span></footer>
+      </section>
+      <section class="preview" id="previewPanel">
+        <header class="preview-head"><div class="preview-title"><b id="previewName">文件预览</b><span id="previewMeta">选择文本文件以查看和编辑</span></div><button class="btn icon-btn" id="downloadBtn" title="下载" hidden>⇩</button></header>
+        <div class="editor-wrap"><textarea id="editor" spellcheck="false" hidden></textarea><img class="image-preview" id="imagePreview" alt="远程图片预览" hidden><video class="video-preview" id="videoPreview" controls preload="metadata" playsinline hidden></video><div class="empty" id="previewEmpty"><div><div class="empty-icon">⌁</div>双击文件打开预览。<br>支持文本、常见图片以及 MP4、WebM、MOV、MKV、AVI、M4V 视频。</div></div></div>
+        <footer class="preview-foot"><span class="dirty" id="dirtyState">只读预览尚未打开</span><div style="display:flex;gap:7px"><button class="btn" id="loadMoreBtn" hidden>继续加载</button><button class="btn primary" id="saveBtn" hidden>保存并确认</button></div></footer>
+      </section>
+    </section>
+  </main>
+  <div class="toast-stack" id="toasts"></div>
+  <div class="modal-backdrop" id="confirmModal" hidden>
+    <div class="modal"><h2>确认远程操作</h2><p>请核对即将在服务器上执行的更改。确认后只会执行下面这一项操作。</p><div class="summary" id="confirmSummary"></div><div class="confirm-field" id="phraseField" hidden><label id="phraseLabel"></label><input id="phraseInput" autocomplete="off"></div><div class="modal-actions"><button class="btn" id="cancelConfirm">取消</button><button class="btn danger" id="commitConfirm">确认执行</button></div></div>
+  </div>
+  <div class="modal-backdrop" id="inputModal" hidden>
+    <div class="modal"><h2 id="inputTitle"></h2><p id="inputDescription"></p><div class="confirm-field"><label id="inputLabel"></label><input id="inputValue" autocomplete="off"></div><div class="modal-actions"><button class="btn" id="cancelInput">取消</button><button class="btn primary" id="commitInput">继续</button></div></div>
+  </div>
+  <script type="module">
+    const $ = (selector) => document.querySelector(selector);
+    const state = { hosts: [], sessionId: "", host: "", root: "", path: "", entries: [], tree: {}, selected: null, file: null, proposal: null, busy: false, history: [], historyIndex: -1 };
+    const standalone = window.parent === window;
+    let rpcId = 0;
+    const pending = new Map();
+
+    function notify(method, params) { window.parent.postMessage({ jsonrpc:"2.0", method, params }, "*"); }
+    function request(method, params) { return new Promise((resolve,reject) => { const id=++rpcId; pending.set(id,{resolve,reject}); window.parent.postMessage({jsonrpc:"2.0",id,method,params},"*"); }); }
+    window.addEventListener("message", (event) => {
+      if (event.source !== window.parent) return;
+      const message = event.data;
+      if (!message || message.jsonrpc !== "2.0") return;
+      if (message.id !== undefined) { const item=pending.get(message.id); if(!item)return; pending.delete(message.id); message.error?item.reject(message.error):item.resolve(message.result); return; }
+      if (message.method === "ui/notifications/tool-result") hydrate(message.params?.structuredContent);
+    });
+    const bridgeReady = standalone ? Promise.resolve(false) : (async () => { await request("ui/initialize", { appInfo:{name:"remote-file-manager",version:"0.1.1"}, appCapabilities:{}, protocolVersion:"2026-01-26" }); notify("ui/notifications/initialized",{}); return true; })();
+
+    async function callTool(name, args={}) {
+      const bridged = await bridgeReady;
+      let data;
+      if(bridged) {
+        const result = await request("tools/call", { name, arguments:args });
+        data = result?.structuredContent;
+      } else {
+        const response = await fetch("/api/call", { method:"POST", credentials:"omit", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name,arguments:args}) });
+        data = await response.json();
+      }
+      if (!data?.ok) throw new Error(data?.message || data?.code || "操作失败");
+      return data;
+    }
+    function hydrate(data) {
+      if (!data?.ok) return;
+      if (Array.isArray(data.hosts)) { state.hosts=data.hosts; renderHosts(); }
+      if (data.requestedHost) $("#hostInput").value=data.requestedHost;
+      if (data.requestedRoot) $("#rootInput").value=data.requestedRoot;
+    }
+    function toast(message, error=false) { const node=document.createElement("div"); node.className=`toast${error?" error":""}`; node.textContent=message; $("#toasts").append(node); setTimeout(()=>node.remove(),4200); }
+    function askForValue({title,description,label,value="",confirmLabel="继续"}) { return new Promise(resolve=>{const modal=$("#inputModal");$("#inputTitle").textContent=title;$("#inputDescription").textContent=description;$("#inputLabel").textContent=label;$("#inputValue").value=value;$("#commitInput").textContent=confirmLabel;modal.hidden=false;const finish=result=>{modal.hidden=true;$("#commitInput").onclick=null;$("#cancelInput").onclick=null;$("#inputValue").onkeydown=null;resolve(result);};$("#commitInput").onclick=()=>finish($("#inputValue").value.trim());$("#cancelInput").onclick=()=>finish(null);$("#inputValue").onkeydown=e=>{if(e.key==="Enter")finish($("#inputValue").value.trim());if(e.key==="Escape")finish(null);};requestAnimationFrame(()=>$("#inputValue").focus());}); }
+    function setBusy(value) { state.busy=value; $("#app").classList.toggle("loading",value); }
+    async function safely(action) { if(state.busy)return; setBusy(true); try { await action(); } catch(error) { toast(error?.message || String(error),true); } finally { setBusy(false); } }
+    function renderHosts() { $("#hostOptions").innerHTML=state.hosts.map(h=>`<option value="${escapeHtml(h)}"></option>`).join(""); $("#hostList").innerHTML=state.hosts.length?state.hosts.map(h=>`<button class="host ${h===state.host?"active":""}" data-host="${escapeAttr(h)}"><span class="dot"></span>${escapeHtml(h)}</button>`).join(""):`<div style="padding:8px;color:var(--muted);font-size:11px">未发现固定别名，也可以手动输入。</div>`; }
+    function escapeHtml(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+    function escapeAttr(value) { return escapeHtml(value); }
+    function formatSize(bytes) { if(!Number.isFinite(bytes))return "—"; const u=["B","KB","MB","GB"]; let n=bytes,i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return `${n>=10||i===0?n.toFixed(0):n.toFixed(1)} ${u[i]}`; }
+    function formatDate(seconds) { if(!seconds)return "—"; return new Intl.DateTimeFormat("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(seconds*1000)); }
+    function fileVisual(item) { if(item.type==="directory")return {kind:"folder",glyph:"📁",label:"文件夹"};if(item.type==="link")return {kind:"code",glyph:"↗",label:"符号链接"};const ext=(item.name.split(".").pop()||"").toLowerCase();if(["png","jpg","jpeg","gif","webp","bmp","avif","svg"].includes(ext))return {kind:"image",glyph:"▧",label:`${ext.toUpperCase()} 图片`};if(["csv","tsv","xls","xlsx"].includes(ext))return {kind:"table",glyph:"▦",label:ext.toUpperCase()};if(["json","jsonl","yaml","yml","toml","xml"].includes(ext))return {kind:"data",glyph:"{}",label:`${ext.toUpperCase()} 数据`};if(["js","jsx","ts","tsx","py","go","rs","java","c","cc","cpp","h","hpp","sh","zsh","css","html","vue","svelte"].includes(ext))return {kind:"code",glyph:"</>",label:`${ext.toUpperCase()} 源文件`};if(["zip","tar","gz","bz2","xz","7z","rar"].includes(ext))return {kind:"archive",glyph:"ZIP",label:"压缩文件"};if(ext==="pdf")return {kind:"pdf",glyph:"PDF",label:"PDF 文档"};if(["mp4","mov","mkv","avi","webm"].includes(ext))return {kind:"media",glyph:"▶",label:"视频"};if(["mp3","wav","flac","aac","m4a","ogg"].includes(ext))return {kind:"media",glyph:"♪",label:"音频"};if(["txt","md","log","ini","conf"].includes(ext))return {kind:"text",glyph:"TXT",label:"文本文件"};return {kind:"text",glyph:"▤",label:ext?`${ext.toUpperCase()} 文件`:"文件"}; }
+    function renderTree() {
+      if(!state.sessionId){$("#treeTitle").hidden=true;$("#treeView").hidden=true;return;}
+      $("#treeTitle").hidden=false;$("#treeView").hidden=false;
+      const seen=new Set();
+      const branch=(path,depth,label) => {
+        if(seen.has(path)||depth>12)return "";seen.add(path);
+        const known=Array.isArray(state.tree[path]);
+        const active=state.path===path;
+        const indent=7+Math.min(depth,4)*12;
+        let html=`<button class="tree-node ${active?"active":""}" data-tree-path="${escapeAttr(path)}" title="${escapeAttr(path||"根目录")}" style="padding-left:${indent}px"><span class="chevron">${known?"⌄":"›"}</span><span>${depth>4?"…":"📁"}</span><span class="tree-label">${escapeHtml(label)}</span></button>`;
+        if(known){for(const item of state.tree[path].filter(x=>x.type==="directory")){html+=branch(item.path,depth+1,item.name);}}
+        return html;
+      };
+      $("#treeView").innerHTML=branch("",0,"根目录");
+    }
+    function renderBreadcrumbs() { const parts=state.path?state.path.split("/").filter(Boolean):[]; let built=""; const items=[`<button class="crumb" data-path="">根目录</button>`]; for(const part of parts){built=built?`${built}/${part}`:part;items.push(`<span style="color:var(--muted)">›</span><button class="crumb" data-path="${escapeAttr(built)}">${escapeHtml(part)}</button>`);} $("#breadcrumbs").innerHTML=items.join("");$("#breadcrumbs").scrollLeft=$("#breadcrumbs").scrollWidth;$("#backBtn").disabled=state.historyIndex<=0;$("#forwardBtn").disabled=state.historyIndex<0||state.historyIndex>=state.history.length-1;$("#upBtn").disabled=!state.path; }
+    function renderFiles() {
+      renderBreadcrumbs();
+      $("#entryCount").textContent=`${state.entries.length} 个项目`;
+      $("#currentPath").textContent=`${state.root}${state.path?`/${state.path}`:""}`;
+      if(!state.entries.length){$("#fileBody").innerHTML=`<tr><td colspan="5"><div style="padding:60px 20px;text-align:center;color:var(--muted)">此目录为空</div></td></tr>`;return;}
+      $("#fileBody").innerHTML=state.entries.map(item=>{const visual=fileVisual(item);return `<tr tabindex="0" class="file-row ${state.selected?.path===item.path?"selected":""}" data-path="${escapeAttr(item.path)}" data-type="${item.type}"><td><div class="name-cell"><span class="file-icon ${visual.kind}">${visual.glyph}</span><span class="file-name" title="${escapeAttr(item.name)}">${escapeHtml(item.name)}</span></div></td><td class="type-col">${escapeHtml(visual.label)}</td><td class="hide-mobile">${item.type==="directory"?"—":formatSize(item.size)}</td><td class="hide-mobile">${formatDate(item.modified)}</td><td><div class="row-actions">${item.type==="file"?`<button class="mini" data-action="preview" title="预览">⌁</button><button class="mini" data-action="download" title="下载">⇩</button>`:""}<button class="mini" data-action="rename" title="重命名或移动">✎</button><button class="mini delete" data-action="delete" title="删除">×</button></div></td></tr>`;}).join("");
+    }
+    function stopVideo(){const video=$("#videoPreview");video.pause();video.hidden=true;video.removeAttribute("src");video.load();}
+    function clearPreview() { state.file=null; $("#editor").hidden=true; $("#editor").readOnly=false; $("#imagePreview").hidden=true; $("#imagePreview").removeAttribute("src"); stopVideo(); $("#previewEmpty").hidden=false; $("#saveBtn").hidden=true; $("#loadMoreBtn").hidden=true; $("#downloadBtn").hidden=true; $("#previewName").textContent="文件预览"; $("#previewMeta").textContent="选择文本、图片或视频进行预览"; $("#dirtyState").textContent="只读预览尚未打开"; $("#dirtyState").classList.remove("changed"); }
+    async function connect() { const host=$("#hostInput").value.trim(),root=$("#rootInput").value.trim(); if(!host||!root)throw new Error("请输入 SSH 主机别名和远程根目录。"); const data=await callTool("rfm_connect",{host,root}); state.sessionId=data.sessionId;state.host=host;state.root=data.root;state.path=data.path||"";state.entries=data.entries||[];state.tree={ [state.path]:state.entries };state.selected=null;state.history=[state.path];state.historyIndex=0;clearPreview();renderHosts();renderFiles();renderTree(); $("#sessionInfo").hidden=false; $("#sessionInfo").innerHTML=`<strong>已连接</strong><br>${escapeHtml(data.connection.user?`${data.connection.user}@`:"")}${escapeHtml(data.connection.hostname)}:${data.connection.port}<br>根：${escapeHtml(state.root)}`; toast("SSH 会话已连接"); }
+    function rememberHistory(path){if(state.history[state.historyIndex]===path)return;state.history=state.history.slice(0,state.historyIndex+1);state.history.push(path);state.historyIndex=state.history.length-1;}
+    function applyDirectory(path,entries,recordHistory){state.path=path;state.entries=entries;state.tree[path]=entries;state.selected=null;if(recordHistory)rememberHistory(path);clearPreview();renderFiles();renderTree();}
+    async function loadDirectory(path,force=false,recordHistory=true) { if(!state.sessionId)throw new Error("请先连接服务器。"); const cached=state.tree[path]; if(!force&&Array.isArray(cached)){applyDirectory(path,cached,recordHistory);return;} const data=await callTool("rfm_list",{sessionId:state.sessionId,path});applyDirectory(data.path||"",data.entries||[],recordHistory); }
+    async function navigateHistory(delta){const next=state.historyIndex+delta;if(next<0||next>=state.history.length)return;const previous=state.historyIndex;state.historyIndex=next;try{await loadDirectory(state.history[next],false,false);}catch(error){state.historyIndex=previous;throw error;}}
+    async function navigateUp(){if(!state.path)return;await loadDirectory(state.path.split("/").slice(0,-1).join("/"));}
+    function decodePreview(parts){const total=parts.reduce((sum,part)=>sum+part.length,0);const bytes=new Uint8Array(total);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}return new TextDecoder("utf-8").decode(bytes);}
+    function base64Bytes(value){const binary=atob(value||"");const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes;}
+    function renderPreview(){const file=state.file,text=decodePreview(file.parts);file.original=text;$("#editor").value=text;$("#editor").readOnly=file.hasMore||!file.editable;$("#editor").hidden=false;$("#previewEmpty").hidden=true;$("#downloadBtn").hidden=false;$("#previewName").textContent=file.name;$("#previewMeta").textContent=`${formatSize(file.loaded)} / ${formatSize(file.size)} · UTF-8 文本`;$("#loadMoreBtn").hidden=!file.hasMore;$("#loadMoreBtn").textContent=`继续加载（剩余 ${formatSize(file.size-file.loaded)}）`;$("#saveBtn").hidden=!file.editable||file.hasMore;updateDirty();}
+    async function openFile(path) { stopVideo();$("#imagePreview").hidden=true;$("#previewName").textContent=path.split("/").pop()||path;$("#previewMeta").textContent="正在读取远程文件…";$("#dirtyState").textContent="加载中…";if(matchMedia("(max-width: 1000px)").matches)$("#previewPanel").scrollIntoView({behavior:"smooth",block:"start"});const data=await callTool("rfm_read",{sessionId:state.sessionId,path,offset:0}); state.file={path:data.path,name:data.name,version:data.version,size:data.size,loaded:data.bytesRead,hasMore:data.hasMore,editable:data.editable,parts:[base64Bytes(data.dataBase64)],original:""};renderPreview(); }
+    function isImagePath(path){return /\.(?:png|jpe?g|gif|webp|bmp|avif)$/i.test(path);}
+    function isVideoPath(path){return /\.(?:mp4|m4v|webm|mov|mkv|avi)$/i.test(path);}
+    async function openImage(path){stopVideo();$("#previewName").textContent=path.split("/").pop()||path;$("#previewMeta").textContent="正在读取远程图片…";$("#dirtyState").textContent="加载中…";$("#editor").hidden=true;$("#previewEmpty").hidden=false;if(matchMedia("(max-width: 1000px)").matches)$("#previewPanel").scrollIntoView({behavior:"smooth",block:"start"});const data=await callTool("rfm_preview_image",{sessionId:state.sessionId,path});state.file={path:data.path,name:data.name,size:data.size,kind:"image"};const image=$("#imagePreview");image.onload=()=>{$("#previewMeta").textContent=`${image.naturalWidth} × ${image.naturalHeight} · ${formatSize(data.size)}`;};image.src=`data:${data.mimeType};base64,${data.dataBase64}`;image.hidden=false;$("#previewEmpty").hidden=true;$("#downloadBtn").hidden=false;$("#loadMoreBtn").hidden=true;$("#saveBtn").hidden=true;$("#dirtyState").textContent="图片只读预览";}
+    async function openVideo(path){if(!standalone)throw new Error("视频流预览请在右侧浏览器面板中打开。");$("#previewName").textContent=path.split("/").pop()||path;$("#previewMeta").textContent="正在建立远程视频流…";$("#dirtyState").textContent="加载视频元数据…";$("#editor").hidden=true;$("#imagePreview").hidden=true;$("#previewEmpty").hidden=false;if(matchMedia("(max-width: 1000px)").matches)$("#previewPanel").scrollIntoView({behavior:"smooth",block:"start"});const data=await callTool("rfm_prepare_media",{sessionId:state.sessionId,path});state.file={path:data.path,name:data.name,size:data.size,kind:"video"};const video=$("#videoPreview");video.onloadedmetadata=()=>{$("#previewMeta").textContent=`${video.videoWidth||"—"} × ${video.videoHeight||"—"} · ${formatSize(data.size)}`;$("#dirtyState").textContent="远程视频流 · 只读";};video.onerror=()=>{$("#dirtyState").textContent="浏览器无法解码此视频编码";toast("文件格式已识别，但当前浏览器不支持其中的视频编码。",true);};video.src=data.url;video.hidden=false;$("#previewEmpty").hidden=true;$("#downloadBtn").hidden=false;$("#loadMoreBtn").hidden=true;$("#saveBtn").hidden=true;video.load();}
+    async function openEntry(item){return isImagePath(item.path)?openImage(item.path):isVideoPath(item.path)?openVideo(item.path):openFile(item.path);}
+    async function loadMorePreview(){if(!state.file||!state.file.hasMore)return;const file=state.file;const data=await callTool("rfm_read",{sessionId:state.sessionId,path:file.path,offset:file.loaded});if(data.version!==file.version){clearPreview();throw new Error("远程文件在加载期间发生变化，请重新打开。");}file.parts.push(base64Bytes(data.dataBase64));file.loaded+=data.bytesRead;file.hasMore=data.hasMore;renderPreview();}
+    function updateDirty(){if(!state.file)return;const changed=$("#editor").value!==state.file.original;const partial=state.file.hasMore;$("#dirtyState").textContent=partial?`已预览 ${formatSize(state.file.loaded)}，可继续分段加载`:state.file.editable?(changed?"有尚未保存的修改":"与远程文件一致"):"文件较大：可完整预览和下载，不开放在线编辑";$("#dirtyState").classList.toggle("changed",changed);$("#saveBtn").disabled=!changed||partial;}
+    async function prepare(operation) { const data=await callTool("rfm_prepare_mutation",{sessionId:state.sessionId,operation}); state.proposal=data;$("#confirmSummary").textContent=data.summary;const hasPhrase=Boolean(data.confirmationPhrase);$("#phraseField").hidden=!hasPhrase;$("#phraseInput").value="";$("#phraseLabel").textContent=hasPhrase?`递归删除需要输入“${data.confirmationPhrase}”以确认：`:"";$("#confirmModal").hidden=false; }
+    async function commit() { if(!state.proposal)return; const proposal=state.proposal; const confirmation=$("#phraseInput").value; const data=await callTool("rfm_commit_mutation",{proposalId:proposal.proposalId,confirmation}); state.proposal=null;$("#confirmModal").hidden=true;toast(data.message||"远程操作已完成");await loadDirectory(state.path,true); }
+    async function cancelProposal() { const proposal=state.proposal;state.proposal=null;$("#confirmModal").hidden=true;if(proposal)await callTool("rfm_discard_mutation",{proposalId:proposal.proposalId}); }
+    async function download(path) { const data=await callTool("rfm_download",{sessionId:state.sessionId,path}); if(standalone){const bytes=Uint8Array.from(atob(data.dataBase64),c=>c.charCodeAt(0));const url=URL.createObjectURL(new Blob([bytes],{type:data.mimeType||"application/octet-stream"}));const link=document.createElement("a");link.href=url;link.download=data.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}else{await request("ui/download-file",{contents:[{type:"resource",resource:{uri:`file:///${encodeURIComponent(data.name)}`,mimeType:data.mimeType||"application/octet-stream",blob:data.dataBase64}}]});}toast(`已准备下载：${data.name}`); }
+    async function uploadFile(file) { if(file.size>8*1024*1024)throw new Error("上传文件不能超过 8 MiB。"); const bytes=new Uint8Array(await file.arrayBuffer()); let binary=""; for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000)); const dataBase64=btoa(binary); const path=state.path?`${state.path}/${file.name}`:file.name; await prepare({kind:"upload",path,dataBase64}); }
+    async function search() { const query=$("#searchInput").value.trim(); if(!query){await loadDirectory(state.path);return;} const data=await callTool("rfm_search",{sessionId:state.sessionId,path:state.path,query}); state.entries=(data.results||[]).map(item=>({...item,type:"file",size:0,modified:0}));state.selected=null;renderFiles();$("#entryCount").textContent=`${state.entries.length} 个搜索结果`; }
+
+    $("#connectBtn").addEventListener("click",()=>safely(connect));
+    $("#hostList").addEventListener("click",e=>{const button=e.target.closest("[data-host]");if(!button)return;$("#hostInput").value=button.dataset.host;});
+    $("#treeView").addEventListener("click",e=>{const button=e.target.closest("[data-tree-path]");if(button)safely(()=>loadDirectory(button.dataset.treePath));});
+    $("#backBtn").addEventListener("click",()=>safely(()=>navigateHistory(-1)));
+    $("#forwardBtn").addEventListener("click",()=>safely(()=>navigateHistory(1)));
+    $("#upBtn").addEventListener("click",()=>safely(navigateUp));
+    $("#refreshBtn").addEventListener("click",()=>safely(()=>loadDirectory(state.path,true)));
+    $("#breadcrumbs").addEventListener("click",e=>{const button=e.target.closest("[data-path]");if(button)safely(()=>loadDirectory(button.dataset.path));});
+    $("#fileBody").addEventListener("click",e=>{const row=e.target.closest("tr[data-path]");if(!row)return;const item=state.entries.find(x=>x.path===row.dataset.path);if(!item)return;const action=e.target.closest("[data-action]")?.dataset.action;if(action==="preview")return safely(()=>openEntry(item));if(action==="download")return safely(()=>download(item.path));if(action==="rename")return safely(async()=>{const destination=await askForValue({title:"重命名或移动",description:"请输入授权根目录内的新相对路径。提交后还会显示一次操作摘要供你确认。",label:"新路径",value:item.path,confirmLabel:"检查更改"});if(destination&&destination!==item.path)await prepare({kind:"rename",path:item.path,destination});});if(action==="delete")return safely(()=>prepare({kind:"delete",path:item.path,recursive:item.type==="directory"}));state.selected=item;$("#fileBody").querySelectorAll("tr.selected").forEach(node=>node.classList.remove("selected"));row.classList.add("selected");});
+    $("#fileBody").addEventListener("dblclick",e=>{if(e.target.closest("[data-action]"))return;const row=e.target.closest("tr[data-path]");if(!row)return;const item=state.entries.find(x=>x.path===row.dataset.path);if(!item)return;if(item.type==="directory")safely(()=>loadDirectory(item.path));else if(item.type==="file")safely(()=>openEntry(item));});
+    $("#fileBody").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const row=e.target.closest("tr[data-path]");if(!row)return;const item=state.entries.find(x=>x.path===row.dataset.path);if(!item)return;e.preventDefault();if(item.type==="directory")safely(()=>loadDirectory(item.path));else if(item.type==="file")safely(()=>openEntry(item));});
+    document.addEventListener("keydown",e=>{if(e.key==="Backspace"&&!/INPUT|TEXTAREA/.test(document.activeElement?.tagName||"")){e.preventDefault();safely(navigateUp);}});
+    $("#editor").addEventListener("input",updateDirty);
+    $("#loadMoreBtn").addEventListener("click",()=>safely(loadMorePreview));
+    $("#saveBtn").addEventListener("click",()=>safely(()=>prepare({kind:"write",path:state.file.path,text:$("#editor").value,expectedVersion:state.file.version})));
+    $("#downloadBtn").addEventListener("click",()=>state.file&&safely(()=>download(state.file.path)));
+    $("#newFileBtn").addEventListener("click",()=>safely(async()=>{const name=await askForValue({title:"新建文本文件",description:"文件会创建在当前目录，执行前仍会显示确认摘要。",label:"文件名",confirmLabel:"检查更改"});if(name){const path=state.path?`${state.path}/${name}`:name;await prepare({kind:"write",path,text:""});}}));
+    $("#mkdirBtn").addEventListener("click",()=>safely(async()=>{const name=await askForValue({title:"新建文件夹",description:"文件夹会创建在当前目录，执行前仍会显示确认摘要。",label:"文件夹名称",confirmLabel:"检查更改"});if(name){const path=state.path?`${state.path}/${name}`:name;await prepare({kind:"mkdir",path});}}));
+    $("#uploadBtn").addEventListener("click",()=>$("#uploadInput").click());
+    $("#uploadInput").addEventListener("change",e=>{const file=e.target.files?.[0];if(file)safely(()=>uploadFile(file));e.target.value="";});
+    $("#searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")safely(search);});
+    $("#cancelConfirm").addEventListener("click",()=>safely(cancelProposal));
+    $("#commitConfirm").addEventListener("click",()=>safely(commit));
+    $("#fullscreenBtn").addEventListener("click",()=>safely(async()=>{if(standalone){await document.documentElement.requestFullscreen?.();}else{await bridgeReady;await request("ui/request-display-mode",{mode:"fullscreen"});}}));
+    $("#hostInput").addEventListener("keydown",e=>{if(e.key==="Enter")safely(connect);});
+    $("#rootInput").addEventListener("keydown",e=>{if(e.key==="Enter")safely(connect);});
+    renderHosts();
+    if(standalone)safely(async()=>hydrate(await callTool("rfm_list_hosts")));
+  </script>
+</body>
+</html>
