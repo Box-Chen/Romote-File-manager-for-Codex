@@ -7,7 +7,7 @@ The interface supports fast directory navigation, file-type icons, text preview 
 ## Install
 
 ```sh
-codex plugin marketplace add Box-Chen/remote-file-manager --ref main
+codex plugin marketplace add Box-Chen/Romote-File-manager-for-Codex --ref main
 codex plugin add remote-file-manager@remote-files
 ```
 

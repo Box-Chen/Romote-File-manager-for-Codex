@@ -23,7 +23,7 @@ Key-based, non-interactive SSH must already work for the selected alias. Host-ke
 ## Install from the repository marketplace
 
 ```sh
-codex plugin marketplace add Box-Chen/remote-file-manager --ref main
+codex plugin marketplace add Box-Chen/Romote-File-manager-for-Codex --ref main
 codex plugin add remote-file-manager@remote-files
 ```
 
