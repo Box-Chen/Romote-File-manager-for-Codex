@@ -7,11 +7,11 @@ The interface supports fast directory navigation, file-type icons, text preview 
 ## Install
 
 ```sh
-codex plugin marketplace add OWNER/remote-file-manager --ref main
+codex plugin marketplace add Box-Chen/remote-file-manager --ref main
 codex plugin add remote-file-manager@remote-files
 ```
 
-Replace `OWNER` with the GitHub account that publishes this repository. Node.js 22 or newer and a working OpenSSH host alias are required. Restart Codex or open a new task after installation, then ask Codex to open the remote file manager.
+Node.js 22 or newer and a working OpenSSH host alias are required. Restart Codex or open a new task after installation, then ask Codex to open the remote file manager.
 
 See the [plugin documentation](plugins/remote-file-manager/README.md) for usage, development, privacy, and security details.
 

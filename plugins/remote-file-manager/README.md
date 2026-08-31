@@ -23,11 +23,11 @@ Key-based, non-interactive SSH must already work for the selected alias. Host-ke
 ## Install from the repository marketplace
 
 ```sh
-codex plugin marketplace add OWNER/remote-file-manager --ref main
+codex plugin marketplace add Box-Chen/remote-file-manager --ref main
 codex plugin add remote-file-manager@remote-files
 ```
 
-Restart Codex or open a new task after installation, then ask it to open the remote file manager. Replace `OWNER` with the GitHub account that publishes this repository.
+Restart Codex or open a new task after installation, then ask it to open the remote file manager.
 
 ## Development
 
