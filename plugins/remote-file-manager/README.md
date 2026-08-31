@@ -43,3 +43,7 @@ The committed `server.mjs` bundle lets Codex run the plugin without installing n
 ## Privacy and security
 
 The plugin runs on the user's computer and invokes the user's system `ssh` executable. SSH configuration, agent sockets, private keys, remote file contents, and session state are not sent to a service operated by this project. The optional sidebar server listens only on loopback. See [SECURITY.md](../../SECURITY.md) for reporting and deployment guidance.
+
+## License
+
+Released under the [MIT License](../../LICENSE).

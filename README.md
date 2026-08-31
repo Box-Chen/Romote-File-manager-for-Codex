@@ -16,3 +16,7 @@ Node.js 22 or newer and a working OpenSSH host alias are required. Restart Codex
 See the [plugin documentation](plugins/remote-file-manager/README.md) for usage, development, privacy, and security details.
 
 This repository does not include SSH configuration, private keys, passwords, host addresses, or user-specific paths.
+
+## License
+
+Released under the [MIT License](LICENSE).
